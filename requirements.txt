@@ -1,0 +1,29 @@
+# FastAPI
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic-settings==2.7.1
+
+# Database
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.1
+
+# LangChain + AI
+langchain==0.3.14
+langchain-openai==0.3.1
+langchain-community==0.3.14
+faiss-cpu==1.9.0.post1
+
+# HTTP client
+httpx==0.28.1
+
+# Dashboard
+streamlit==1.41.1
+
+# Task queue
+celery==5.4.0
+redis==5.2.1
+
+# Utilities
+python-dotenv==1.0.1
+python-multipart==0.0.20
