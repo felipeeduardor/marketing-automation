@@ -5,7 +5,16 @@ from app.config import get_settings
 
 settings = get_settings()
 
-engine = create_async_engine(settings.DATABASE_URL, echo=settings.DEBUG)
+
+def async_database_url(url: str) -> str:
+    """Railway/Heroku give postgres:// or postgresql:// URLs; SQLAlchemy async needs the asyncpg driver."""
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+asyncpg://" + url[len(prefix):]
+    return url
+
+
+engine = create_async_engine(async_database_url(settings.DATABASE_URL), echo=settings.DEBUG)
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 

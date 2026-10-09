@@ -24,3 +24,11 @@ async def test_health(client):
     response = await client.get("/health")
     assert response.status_code == 200
     assert response.json()["status"] == "healthy"
+
+
+def test_database_url_gets_async_driver():
+    from app.database import async_database_url
+
+    assert async_database_url("postgresql://u:p@host:5432/db") == "postgresql+asyncpg://u:p@host:5432/db"
+    assert async_database_url("postgres://u:p@host/db") == "postgresql+asyncpg://u:p@host/db"
+    assert async_database_url("postgresql+asyncpg://u:p@host/db") == "postgresql+asyncpg://u:p@host/db"
