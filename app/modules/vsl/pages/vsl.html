@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VitaClini: agendamento pelo WhatsApp</title>
+  <link rel="stylesheet" href="/vsl/assets/vsl.css">
+  <script>window.VSL_CONFIG = __VSL_CONFIG__;</script>
+  <script src="/vsl/assets/vsl.js"></script>
+</head>
+<body>
+  <main>
+    <h1 id="headline"></h1>
+    <p class="lead">Assista ao vídeo e veja o VitaClini agendar consultas pelo WhatsApp da sua clínica, a qualquer hora.</p>
+
+    <div class="video" id="video"></div>
+
+    <div id="offer" hidden>
+      <div class="cta-wrap">
+        <a class="btn cta-link" href="#">Criar conta grátis</a>
+        <p class="hint">Comece no plano Free: 1 médico e 50 agendamentos por mês, sem cartão de crédito.</p>
+      </div>
+
+      <h2>Planos</h2>
+      <div class="plans" id="plans"></div>
+
+      <div class="cta-wrap">
+        <a class="btn cta-link" href="#">Criar conta grátis</a>
+      </div>
+
+      <div class="specialist" id="specialist" hidden>
+        <p>Ficou com alguma dúvida?</p>
+        <a class="btn btn-secondary" id="specialist-link" href="#" target="_blank" rel="noopener">Falar com um especialista no WhatsApp</a>
+      </div>
+    </div>
+
+    <h2>O que o VitaClini faz</h2>
+    <ul class="list">
+      <li>Agenda consultas pelo WhatsApp: o paciente escolhe a especialidade, o médico e o horário livre.</li>
+      <li>Envia lembrete automático 24 horas antes da consulta (planos Pro e Enterprise).</li>
+      <li>Responde dúvidas dos pacientes com as informações da sua clínica.</li>
+      <li>Mostra no painel os agendamentos, pacientes e médicos da clínica.</li>
+    </ul>
+  </main>
+
+  <script>
+    (function () {
+      const config = VSL.config;
+      document.getElementById("headline").textContent = config.headline;
+
+      const plansEl = document.getElementById("plans");
+      config.plans.forEach(function (plan) {
+        const card = document.createElement("div");
+        card.className = "plan" + (plan.id === "pro" ? " plan-featured" : "");
+        const name = document.createElement("strong");
+        name.textContent = plan.name;
+        const price = document.createElement("div");
+        price.className = "price";
+        price.textContent = plan.price_monthly ? plan.price_display + "/mês" : "Grátis";
+        const features = document.createElement("ul");
+        plan.features.forEach(function (feature) {
+          const li = document.createElement("li");
+          li.textContent = feature;
+          features.appendChild(li);
+        });
+        card.append(name, price, features);
+        plansEl.appendChild(card);
+      });
+
+      document.querySelectorAll(".cta-link").forEach(function (link) {
+        link.href = VSL.withUtm(config.signupUrl);
+        link.addEventListener("click", function () { VSL.track("cta_click"); });
+      });
+
+      if (config.whatsappNumber) {
+        const specialistLink = document.getElementById("specialist-link");
+        const text = "Olá! Vi o vídeo do VitaClini e tenho uma dúvida antes de criar minha conta.";
+        specialistLink.href = "https://wa.me/" + config.whatsappNumber + "?text=" + encodeURIComponent(text);
+        specialistLink.addEventListener("click", function () { VSL.track("specialist_click"); });
+        document.getElementById("specialist").hidden = false;
+      }
+
+      const offer = document.getElementById("offer");
+      function showOffer() {
+        if (!offer.hidden) return;
+        offer.hidden = false;
+        VSL.storageSet("localStorage", "vsl_cta_unlocked", "1");
+        VSL.track("cta_shown");
+      }
+
+      VSL.track("page_view");
+      VSL.mountVideo(document.getElementById("video"), function (watchedSeconds) {
+        if (watchedSeconds >= config.ctaDelaySeconds) showOffer();
+      });
+
+      // Returning visitors and pages without a delay (or without a video) see the offer right away.
+      if (config.ctaDelaySeconds === 0 || config.video.kind === "none" ||
+          VSL.storageGet("localStorage", "vsl_cta_unlocked") === "1") {
+        showOffer();
+      }
+    })();
+  </script>
+</body>
+</html>

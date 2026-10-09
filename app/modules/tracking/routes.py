@@ -1,6 +1,7 @@
 """Tracking API endpoints for UTM, pixel, and channel webhooks."""
 
 import base64
+import secrets
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
@@ -16,6 +17,8 @@ from app.modules.tracking.channels import (
     GoogleAdsWebhookPayload,
     pixel_tracker,
 )
+from app.config import get_settings
+from app.utils.auth import require_admin
 from app.utils.multi_tenant import get_tenant_id
 from app.utils.logger import get_logger
 
@@ -27,6 +30,12 @@ router = APIRouter(prefix="/tracking", tags=["tracking"])
 PIXEL_GIF = base64.b64decode(
     "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
 )
+
+
+def verify_meta_subscription(mode: str | None, token: str | None) -> bool:
+    """Meta webhook handshake: accept only our own verify token."""
+    expected = get_settings().META_VERIFY_TOKEN
+    return mode == "subscribe" and bool(expected) and token is not None and secrets.compare_digest(token, expected)
 
 
 # --- UTM Tracking ---
@@ -90,7 +99,7 @@ async def tracking_pixel(
     )
 
 
-@router.get("/pixel/snippet")
+@router.get("/pixel/snippet", dependencies=[Depends(require_admin)])
 async def get_pixel_snippet(
     request: Request,
     channel: str = Query(..., description="facebook, google_ads, or server"),
@@ -147,7 +156,7 @@ async def facebook_webhook_verify(
     hub_verify_token: str = Query(None, alias="hub.verify_token"),
 ):
     """Facebook webhook verification endpoint."""
-    if hub_mode == "subscribe" and hub_challenge:
+    if verify_meta_subscription(hub_mode, hub_verify_token) and hub_challenge:
         return Response(content=hub_challenge, media_type="text/plain")
     raise HTTPException(403, "Verification failed")
 
@@ -202,7 +211,7 @@ async def whatsapp_webhook_verify(
     hub_verify_token: str = Query(None, alias="hub.verify_token"),
 ):
     """WhatsApp Cloud API webhook verification."""
-    if hub_mode == "subscribe" and hub_challenge:
+    if verify_meta_subscription(hub_mode, hub_verify_token) and hub_challenge:
         return Response(content=hub_challenge, media_type="text/plain")
     raise HTTPException(403, "Verification failed")
 
@@ -235,7 +244,7 @@ async def google_ads_webhook(
 # --- Lead Queries ---
 
 
-@router.get("/leads", response_model=list[LeadResponse])
+@router.get("/leads", response_model=list[LeadResponse], dependencies=[Depends(require_admin)])
 async def list_leads(
     channel: str | None = Query(None),
     status: str | None = Query(None),
@@ -257,7 +266,7 @@ async def list_leads(
     return list(result.scalars().all())
 
 
-@router.get("/leads/{lead_id}", response_model=LeadResponse)
+@router.get("/leads/{lead_id}", response_model=LeadResponse, dependencies=[Depends(require_admin)])
 async def get_lead(
     lead_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -270,7 +279,7 @@ async def get_lead(
     return lead
 
 
-@router.get("/channels/stats")
+@router.get("/channels/stats", dependencies=[Depends(require_admin)])
 async def channel_stats(
     db: AsyncSession = Depends(get_db),
     tenant_id: str = Depends(get_tenant_id),

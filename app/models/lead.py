@@ -23,5 +23,22 @@ class Lead(Base):
     interests: Mapped[str | None] = mapped_column(Text)  # JSON string of interests
     status: Mapped[str] = mapped_column(String(50), default="new")  # new, qualified, converted, lost
     assigned_sector: Mapped[str | None] = mapped_column(String(100))
+
+    # CRM fields used to sell the clinic WhatsApp assistant.
+    # They are nullable so leads received by pixels/webhooks continue to work.
+    company_name: Mapped[str | None] = mapped_column(String(255), index=True)
+    specialty: Mapped[str | None] = mapped_column(String(255))
+    city: Mapped[str | None] = mapped_column(String(255))
+    instagram: Mapped[str | None] = mapped_column(String(255))
+    website: Mapped[str | None] = mapped_column(String(500))
+    decision_maker_name: Mapped[str | None] = mapped_column(String(255))
+    decision_maker_role: Mapped[str | None] = mapped_column(String(100))
+    notes: Mapped[str | None] = mapped_column(Text)
+    last_contact_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    next_follow_up_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    demo_scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    pilot_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    pilot_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    lost_reason: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

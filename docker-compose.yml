@@ -21,7 +21,9 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      # 5432 is already used by another local PostgreSQL container.
+      # The app still connects internally to db:5432; 5433 is only for host access.
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

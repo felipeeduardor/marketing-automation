@@ -4,6 +4,7 @@ import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from httpx import AsyncClient, ASGITransport
 
+from app.config import get_settings
 from app.main import app
 from app.modules.tracking.tracker import UTMParams
 from app.modules.tracking.channels import (
@@ -175,6 +176,13 @@ async def test_track_lead_endpoint(mock_tracker, client):
     mock_lead.interests = None
     mock_lead.assigned_sector = None
     mock_lead.created_at = "2025-01-01T00:00:00"
+    mock_lead.updated_at = None
+    for field in (
+        "company_name", "specialty", "city", "instagram", "website", "decision_maker_name",
+        "decision_maker_role", "notes", "last_contact_at", "next_follow_up_at",
+        "demo_scheduled_at", "pilot_started_at", "pilot_ends_at", "lost_reason",
+    ):
+        setattr(mock_lead, field, None)
     mock_tracker.track_lead = AsyncMock(return_value=mock_lead)
 
     response = await client.post(
@@ -202,19 +210,32 @@ async def test_pixel_tracking(mock_tracker, client):
     assert response.headers["content-type"] == "image/gif"
 
 
+@pytest.fixture
+def meta_token(monkeypatch):
+    monkeypatch.setattr(get_settings(), "META_VERIFY_TOKEN", "segredo-meta")
+
+
 @pytest.mark.anyio
-async def test_facebook_webhook_verify(client):
+async def test_facebook_webhook_verify(client, meta_token):
     response = await client.get(
-        "/api/v1/tracking/webhook/facebook?hub.mode=subscribe&hub.challenge=test123"
+        "/api/v1/tracking/webhook/facebook?hub.mode=subscribe&hub.challenge=test123&hub.verify_token=segredo-meta"
     )
     assert response.status_code == 200
     assert response.text == "test123"
 
 
 @pytest.mark.anyio
-async def test_whatsapp_webhook_verify(client):
+async def test_whatsapp_webhook_verify(client, meta_token):
     response = await client.get(
-        "/api/v1/tracking/webhook/whatsapp?hub.mode=subscribe&hub.challenge=verify_me"
+        "/api/v1/tracking/webhook/whatsapp?hub.mode=subscribe&hub.challenge=verify_me&hub.verify_token=segredo-meta"
     )
     assert response.status_code == 200
     assert response.text == "verify_me"
+
+
+@pytest.mark.anyio
+async def test_webhook_verify_rejects_wrong_token(client, meta_token):
+    response = await client.get(
+        "/api/v1/tracking/webhook/facebook?hub.mode=subscribe&hub.challenge=x&hub.verify_token=errado"
+    )
+    assert response.status_code == 403
